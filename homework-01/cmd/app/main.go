@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"go-core-4/pkg/crawler"
-	"go-core-4/pkg/crawler/spider"
+	"go-core-4/homework-01/pkg/crawler"
+	"go-core-4/homework-01/pkg/crawler/spider"
 )
 
 func main() {
