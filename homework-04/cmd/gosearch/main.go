@@ -37,7 +37,7 @@ import (
 // }
 
 // Функция создает директорию для хранения
-// txt результатов сканирования страниц
+// JSON результатов сканирования страниц
 func createDir(url string) (string, error) {
 	url = strings.Map(func(r rune) rune {
 		switch r {
@@ -79,27 +79,33 @@ func scan(idx index.Index, urls ...string) (map[int]crawler.Document, error) {
 		}
 
 		// Создаем директорию и файл для сохранения данных
-		filepath, errd := createDir(urls[i])
-		if errd != nil {
-			return storage, errd
+		filepath, err := createDir(urls[i])
+		if err != nil {
+			return storage, err
 		}
 
-		// Открываем файл для записи
-		file, errf := os.OpenFile(filepath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-		if errf != nil {
-			return storage, fmt.Errorf("opening file error: %v", errf)
+		jsonData, err := json.Marshal(d)
+		if err != nil {
+			return storage, fmt.Errorf("marshaling error: %v", err)
+		}
+
+		// Создаем или открываем файл для записи
+		file, err := os.Create(filepath)
+		if err != nil {
+			return storage, fmt.Errorf("opening file error: %v", err)
 		}
 		defer file.Close()
 
-		// Создаем JSON-энкодер для записи данных в файл
-		encoder := json.NewEncoder(file)
+		_, err = file.Write(jsonData)
+		if err != nil {
+			return storage, fmt.Errorf("writing file error: %v", err)
+		}
 
 		// Добавляем документы в мапу и инвертированный индекс
 		for i, v := range d {
 			v.ID = i
 			idx.Add(v.Title, v.ID)
 			storage[i] = v
-			encoder.Encode(v)
 		}
 	}
 
