@@ -27,7 +27,7 @@ func UrlMap(url string) string {
 func CreateDir(url string) (string, error) {
 	url = UrlMap(url)
 
-	dir := "../JSON/"
+	dir := "../../JSON/"
 	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		return "", fmt.Errorf("creating directory error: %v", err)
@@ -45,7 +45,7 @@ func CreateDir(url string) (string, error) {
 
 // Функция проверяет существование файла
 func IsExist(url string) bool {
-    url = UrlMap(url) + ".JSON"
+    url = "../../JSON/" + UrlMap(url) + ".JSON"
 
     _, err := os.Stat(url)
     if err == nil {

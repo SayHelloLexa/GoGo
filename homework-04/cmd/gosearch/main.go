@@ -33,7 +33,8 @@ func scan(idx index.Index, urls ...string) (map[int]crawler.Document, error) {
 				return storage, fmt.Errorf("unmarshaling error: %v", err)
 			}
 		} else {
-			d, err := c.Scan(urls[i], 2)
+			var err error
+			d, err = c.Scan(urls[i], 2)
 			if err != nil {
 				return storage, fmt.Errorf("scaning error: %v", err)
 			}
@@ -102,6 +103,4 @@ func main() {
 	for _, v := range res {
 		fmt.Printf("Title: %s, ID: %d, URL: %s\n", storage[v].Title, storage[v].ID, storage[v].URL)
 	}
-
-	fmt.Println(storage)
 }
