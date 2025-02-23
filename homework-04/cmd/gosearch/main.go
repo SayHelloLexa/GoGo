@@ -5,66 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"go-core-4/homework-02/pkg/crawler"
 	"go-core-4/homework-02/pkg/crawler/spider"
 
 	"go-core-4/homework-02/pkg/index"
+	"go-core-4/homework-04/pkg/jsonutils"
 )
-
-// Функция проверяет существование файла
-// func isExist(url string) bool {
-// 	url = strings.Map(func(r rune) rune {
-// 		switch r {
-// 		case 'h', 't', 'p', 's', ':', '/':
-// 				return -1 // Удалить
-// 		case '.':
-// 				return '-' // Заменить на '-'
-// 		default:
-// 				return r // Оставить как есть
-// 		}
-// 	}, url)
-
-// 	_, err := os.Stat(url)
-// 	if err == nil {
-// 		return true
-// 	}
-// 	if os.IsNotExist(err) {
-// 		return false
-// 	}
-// 	return true
-// }
-
-// Функция создает директорию для хранения
-// JSON результатов сканирования страниц
-func createDir(url string) (string, error) {
-	url = strings.Map(func(r rune) rune {
-		switch r {
-		case 'h', 't', 'p', 's', ':', '/':
-				return -1 // Удалить
-		case '.':
-				return '-' // Заменить на '-'
-		default:
-				return r // Оставить как есть
-		}
-	}, url)
-
-	dir := "../../internal/"
-	err := os.MkdirAll(dir, 0777)
-	if err != nil {
-		return "", fmt.Errorf("creating directory error: %v", err)
-	}
-
-	filepath := dir + url + ".JSON"
-	file, err := os.Create(filepath)
-	if err != nil {
-		return "", fmt.Errorf("creating file error: %v", err)
-	}
-	defer file.Close()
-
-	return filepath, nil
-}
 
 // Функция сканирует страницы по переданным ссылкам и возвращает мапу документов
 func scan(idx index.Index, urls ...string) (map[int]crawler.Document, error) {
@@ -73,39 +20,53 @@ func scan(idx index.Index, urls ...string) (map[int]crawler.Document, error) {
 
 	// Сканируем страницы 
 	for i := range urls {
-		d, err := c.Scan(urls[i], 2)
-		if err != nil {
-			return storage, fmt.Errorf("scaning error: %v", err)
-		}
+		var d []crawler.Document
 
-		// Создаем директорию и файл для сохранения данных
-		filepath, err := createDir(urls[i])
-		if err != nil {
-			return storage, err
-		}
+		if jsonutils.IsExist(urls[i]) {
+			file, err := os.ReadFile("../../JSON/" + jsonutils.UrlMap(urls[i]) + ".JSON")
+			if err != nil {
+				return storage, fmt.Errorf("opening file error: %v", err)
+			}
 
-		jsonData, err := json.Marshal(d)
-		if err != nil {
-			return storage, fmt.Errorf("marshaling error: %v", err)
-		}
+			err = json.Unmarshal(file, &d)
+			if err != nil {
+				return storage, fmt.Errorf("unmarshaling error: %v", err)
+			}
+		} else {
+			d, err := c.Scan(urls[i], 2)
+			if err != nil {
+				return storage, fmt.Errorf("scaning error: %v", err)
+			}
 
-		// Создаем или открываем файл для записи
-		file, err := os.Create(filepath)
-		if err != nil {
-			return storage, fmt.Errorf("opening file error: %v", err)
-		}
-		defer file.Close()
+			// Создаем директорию и файл для сохранения данных
+			filepath, err := jsonutils.CreateDir(urls[i])
+			if err != nil {
+				return storage, err
+			}
 
-		_, err = file.Write(jsonData)
-		if err != nil {
-			return storage, fmt.Errorf("writing file error: %v", err)
+			jsonData, err := json.Marshal(d)
+			if err != nil {
+				return storage, fmt.Errorf("marshaling error: %v", err)
+			}
+
+			// Создаем или открываем файл для записи
+			file, err := os.Create(filepath)
+			if err != nil {
+				return storage, fmt.Errorf("opening file error: %v", err)
+			}
+			defer file.Close()
+
+			_, err = file.Write(jsonData)
+			if err != nil {
+				return storage, fmt.Errorf("writing file error: %v", err)
+			}
 		}
 
 		// Добавляем документы в мапу и инвертированный индекс
-		for i, v := range d {
-			v.ID = i
+		for j, v := range d {
+			v.ID = j
 			idx.Add(v.Title, v.ID)
-			storage[i] = v
+			storage[j] = v
 		}
 	}
 
@@ -141,4 +102,6 @@ func main() {
 	for _, v := range res {
 		fmt.Printf("Title: %s, ID: %d, URL: %s\n", storage[v].Title, storage[v].ID, storage[v].URL)
 	}
+
+	fmt.Println(storage)
 }
